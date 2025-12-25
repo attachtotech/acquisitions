@@ -1,0 +1,63 @@
+name: Tests
+
+on:
+  push:
+    branches: ["main", "staging"]
+  pull_request:
+    branches: ["main", "staging"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      NODE_OPTIONS: --experimental-vm-modules
+      # DATABASE_URL should be configured as a GitHub Actions secret or environment variable
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        id: tests
+        run: |
+          npm test -- --coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+          retention-days: 30
+
+      - name: Generate summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Tests passed successfully." >> $GITHUB_STEP_SUMMARY
+            if [ -f coverage/lcov.info ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Coverage report has been generated and uploaded as an artifact." >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Tests failed. Check the logs and uploaded coverage artifact (if any) for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Annotate test failures
+        if: failure()
+        run: |
+          echo "::error title=Tests failed::One or more tests failed. Check the test logs and coverage report for details."

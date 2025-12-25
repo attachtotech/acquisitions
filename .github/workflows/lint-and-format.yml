@@ -1,0 +1,52 @@
+name: Lint and Format
+
+on:
+  push:
+    branches: ["main", "staging"]
+  pull_request:
+    branches: ["main", "staging"]
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        id: eslint
+        run: |
+          npm run lint
+        continue-on-error: true
+
+      - name: Run Prettier check
+        id: prettier
+        run: |
+          npm run format:check
+        continue-on-error: true
+
+      - name: Annotate ESLint failures
+        if: steps.eslint.outcome == 'failure'
+        run: |
+          echo "::error title=ESLint issues detected::ESLint found problems. Run 'npm run lint:fix' locally to attempt automatic fixes, or fix the reported issues manually."
+
+      - name: Annotate Prettier failures
+        if: steps.prettier.outcome == 'failure'
+        run: |
+          echo "::error title=Prettier formatting issues detected::Prettier check failed. Run 'npm run format' locally to format files, then commit and push the changes."
+
+      - name: Fail if any lint/format step failed
+        if: steps.eslint.outcome == 'failure' || steps.prettier.outcome == 'failure'
+        run: |
+          echo "Linting and/or formatting failed. See annotations above for details and suggested fix commands."
+          exit 1
