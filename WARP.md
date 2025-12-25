@@ -166,7 +166,7 @@ Authentication is structured in layers: validation → service → controller �
     - `POST /api/auth/sign-up` → `signup`.
     - `POST /api/auth/sign-in` → `signIn`.
     - `POST /api/auth/sign-out` → `signOut`.
-  - `src/routes/user.routes.js` is currently a placeholder with no routes defined.
+  - `src/routes/users.routes.js` is currently a placeholder with no routes defined.
 
 ### Utilities
 
